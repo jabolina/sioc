@@ -20,9 +20,24 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * A class annotation, identifying that the given type must be managed during runtime. Components must be unique within
+ * a namespace, so is not possible to annotate classes of the same type without name. As the time of writing we handle
+ * only a single namespace and all managed components are unique.
+ *
+ * All classes that have this annotation __must__ provide the default constructor without arguments.
+ *
+ * Only classes with this annotation can have its dependencies injected during start. The same applies to using
+ * the {@link Start} and {@link Stop} annotations in methods.
+ */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Component {
+public @interface Managed {
 
+  /**
+   * Defines the managed component name. If this is empty, the class name is used instead.
+   *
+   * @return the custom component name.
+   */
   String name() default "";
 }

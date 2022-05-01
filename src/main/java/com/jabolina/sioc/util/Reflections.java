@@ -26,12 +26,24 @@ public final class Reflections {
 
   private Reflections() { }
 
+  /**
+   * Verifies if the given element contains the given annotation.
+   *
+   * @param element: An element that can be annotated.
+   * @param annotation: The annotation to verify.
+   * @return true if the annotation is present, false otherwise.
+   */
   public static boolean containsAnnotation(AnnotatedElement element, Class<? extends Annotation> annotation) {
-    List<Annotation> annotations = Arrays.asList(element.getAnnotations());
-    return annotations.stream()
-        .anyMatch(a -> a.annotationType().equals(annotation));
+    return element.isAnnotationPresent(annotation);
   }
 
+  /**
+   * Find a method in the object that contains the given annotation. We return only the first method found.
+   *
+   * @param object: The object to be verified.
+   * @param annotation: The method annotation.
+   * @return An {@link Optional<Method>} with the __first__ method found, an empty {@link Optional<Method>} otherwise.
+   */
   public static Optional<Method> findMethodWith(Object object, Class<? extends Annotation> annotation) {
     List<Method> methods = Arrays.asList(object.getClass().getDeclaredMethods());
     return methods.stream()

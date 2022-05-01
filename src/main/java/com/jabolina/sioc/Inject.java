@@ -20,6 +20,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Identifies that the field must be injected.
+ *
+ * To use this annotation the class must be {@link Managed} and the field type must also be {@link Managed}.
+ */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Depends { }
+public @interface Inject { }

@@ -21,14 +21,40 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+/**
+ * Implements an algorithm for do a topological sort over a directed acyclic graph. This is essential to the
+ * injection, where we define the instantiation order.
+ *
+ * Here we implement the <a href="https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm">Kahn's
+ * algorithm</a>. We follow this approach because the algorithm is small and straight-forward to implement. We have
+ * some requirements to succeed with the sorting:
+ *
+ * 1. No cycles in the Graph (is a DAG);
+ * 2. We must have a starting point, that is, at least one class that does not have any dependency.
+ *
+ * All of this could be improved in the future, with some more sophisticated algorithm.
+ */
 public final class TopologicalSorting {
 
   private TopologicalSorting() { }
 
+  /**
+   * Try to do a topological sort in the given graph. If the requirements are met, then a sorted list is returned,
+   * otherwise an exception is thrown.
+   *
+   * @param graph: The graph to be sorted.
+   * @return A sorted list to how traverse the graph.
+   */
   public static List<Class<?>> sort(Map<Class<?>, Collection<Class<?>>> graph) {
     return sort(Graph.from(graph));
   }
 
+  /**
+   * <a href="https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm">Kahn's algorithm</a> implementation.
+   *
+   * @param graph: The graph to sort.
+   * @return A list with the topological sort of the graph.
+   */
   private static List<Class<?>> sort(Graph<Class<?>> graph) {
     List<Class<?>> sorted = new ArrayList<>(graph.size());
     Stack<Graph.Edge<Class<?>>> edges = new Stack<>();
@@ -47,9 +73,9 @@ public final class TopologicalSorting {
       sorted.add(source.source());
 
       for (Graph.Edge<Class<?>> edge : graph) {
-        edge.adjacency().remove(source.source());
+        edge.remove(source.source());
 
-        if (edge.adjacency().isEmpty() && !sorted.contains(edge.source())) {
+        if (edge.adjacency().isEmpty()) {
           edges.add(edge);
         }
       }

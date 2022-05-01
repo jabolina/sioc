@@ -41,10 +41,10 @@ public class LifecycleManagementTest {
     }
   }
 
-  @Component
+  @Managed
   static class A {
 
-    @Depends
+    @Inject
     private B b;
 
     @Start
@@ -60,7 +60,7 @@ public class LifecycleManagementTest {
     }
   }
 
-  @Component(name = "CustomName")
+  @Managed(name = "CustomName")
   static class B {
 
     @Start

@@ -13,44 +13,56 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.jabolina.sioc;
+package com.jabolina.sioc.util;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public final class LifecycleLoader {
+/**
+ * Helper to load all classes from a specified package.
+ */
+public final class PackageLoader {
   private static final String CLASS_EXTENSION = ".class";
-  private static final LifecycleLoader INSTANCE = new LifecycleLoader();
 
-  private LifecycleLoader() { }
+  private PackageLoader() { }
 
-  public static LifecycleLoader instance() {
-    return INSTANCE;
-  }
-
-  public Collection<Class<?>> load(String packageName) {
+  /**
+   * Load all classes from the specified package.
+   *
+   * @param packageName: Package to load classes.
+   * @return A list containing the classes.
+   */
+  public static List<Class<?>> load(String packageName) {
     InputStream input = ClassLoader.getSystemClassLoader()
         .getResourceAsStream(packageName.replace(".", "/"));
 
-    assert input != null : "Failed to load lifecycle classes";
+    // Means that we are unable to create an input stream pointing to the package.
+    if (input == null) {
+      return Collections.emptyList();
+    }
 
     BufferedReader reader = new BufferedReader(new InputStreamReader(input));
     return reader.lines()
         .filter(line -> line.endsWith(CLASS_EXTENSION))
         .map(c -> load(c, packageName))
         .filter(Objects::nonNull)
-        .collect(Collectors.toSet());
+        .collect(Collectors.toList());
   }
 
-  private Class<?> load(String className, String packageName) {
+  private static Class<?> load(String className, String packageName) {
     try {
-      return Class.forName(String.format("%s.%s", packageName, className.replace(CLASS_EXTENSION, "")));
+      return Class.forName(name(className, packageName));
     } catch (ClassNotFoundException ignore) { }
 
     return null;
+  }
+
+  private static String name(String className, String packageName) {
+    return String.format("%s.%s", packageName, className.replace(CLASS_EXTENSION, ""));
   }
 }

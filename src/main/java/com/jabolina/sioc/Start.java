@@ -20,6 +20,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * In classes that have the {@link Managed} annotation, a method can have this annotation.
+ *
+ * The method with this annotation is guaranteed that all fields with the {@link Inject} annotations are already
+ * injected, though is not guaranteed that these are already started.
+ *
+ * The method call is guaranteed.
+ */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Start { }

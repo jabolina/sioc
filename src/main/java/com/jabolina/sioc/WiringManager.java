@@ -26,10 +26,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Class responsible for instantiation and injection of classes within a single namespace.
+ */
 public class WiringManager {
 
+  // We keep the namespace components in memory during this process.
   private final Map<String, Object> components = new HashMap<>();
 
+  /**
+   * Given the list ordered with the classes with the {@link Managed} annotation, we start the wiring process. This
+   * process involves in instantiating the classes using the default no-argument constructor and then injecting the
+   * dependencies.
+   *
+   * @param orderedComponents: A list with the components in the correct order.
+   * @return The wired components.
+   */
   public List<Object> wire(List<Class<?>> orderedComponents) {
     for (Class<?> component : orderedComponents) {
       initialize(component);
@@ -42,6 +54,11 @@ public class WiringManager {
     return new ArrayList<>(components.values());
   }
 
+  /**
+   * This will initialize the component and assert that only one exists with the given name.
+   *
+   * @param component: A single component to initialize.
+   */
   private void initialize(Class<?> component) {
     Object instance;
     try {
@@ -68,7 +85,7 @@ public class WiringManager {
     Object owner = components.get(componentName(component));
 
     for (Field field : component.getDeclaredFields()) {
-      if (Reflections.containsAnnotation(field, Depends.class)) {
+      if (Reflections.containsAnnotation(field, Inject.class)) {
         Class<?> dependencyClass = field.getType();
         Object dependency = components.get(componentName(dependencyClass));
         assert dependency != null : "Dependency " + dependencyClass + " not found!";
@@ -84,8 +101,15 @@ public class WiringManager {
     }
   }
 
+  /**
+   * Retrieve the component name. All components must be unique within a namespace, we first verify the name in the
+   * {@link Managed} annotation, and fallback to the class name.
+   *
+   * @param component: The component to retrieve the name.
+   * @return The component name.
+   */
   private String componentName(Class<?> component) {
-    Component annotation = component.getAnnotation(Component.class);
+    Managed annotation = component.getAnnotation(Managed.class);
     assert annotation != null : "Component " + component.getName() + " does not have annotation!";
 
     String name = annotation.name();

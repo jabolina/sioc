@@ -16,8 +16,10 @@
 package com.jabolina.sioc;
 
 import com.jabolina.sioc.graph.TopologicalSorting;
+import com.jabolina.sioc.util.PackageLoader;
 import com.jabolina.sioc.util.Reflections;
 import net.jcip.annotations.GuardedBy;
+import net.jcip.annotations.ThreadSafe;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -33,30 +35,72 @@ import java.util.stream.Collectors;
 
 import static com.jabolina.sioc.util.Reflections.containsAnnotation;
 
+/**
+ * Entrypoint for managing the lifecycle of components within a single namespace.
+ *
+ * The process for managing is only a few steps at this moment:
+ *
+ * 1. Load and filter all classes for a specified package;
+ * 2. Generate a dependency graph;
+ * 3. Do a topological sort in the graph;
+ * 4. Instantiate the classes accordingly with the topological order and inject the dependencies;
+ *
+ * During initialization process the class will be locked, so other operations can not be applied. The initialization
+ * only instantiates and inject the classes, we moved the start and stop operations in distinct methods.
+ *
+ * The start operation begins after calling the {@link #start()} method. This will iterate in all the components within
+ * the namespace and call the method with the {@link Start} annotation. The same applies to the stop process, start with
+ * the {@link #stop()} method.
+ *
+ * At the time of writing, we are handling only synchronous methods.
+ */
+@ThreadSafe
 public class LifecycleManagement {
 
-  private final String space;
+  private final String packageName;
 
   @GuardedBy("this")
   private final List<Object> components = new ArrayList<>();
   private final WiringManager wiring = new WiringManager();
 
+  private volatile boolean initialized = false;
+
   public LifecycleManagement(String packageName) {
-    this.space = packageName;
+    this.packageName = packageName;
   }
 
+  /**
+   * Load the classes with {@link Managed} annotation and inject the dependencies with the {@link Inject} annotation.
+   */
   public synchronized void initialize() {
+    if (initialized) {
+      return;
+    }
+
+    initialized = true;
     Map<Class<?>, Collection<Class<?>>> graph = dependencyGraph(lifecycleClasses());
     List<Class<?>> topologicalSorted = TopologicalSorting.sort(graph);
     components.addAll(wiring.wire(topologicalSorted));
   }
 
+  /**
+   * Execute the method with the {@link Start} annotation in all classes that are managed, iff the components are
+   * already initialized.
+   */
   public synchronized void start() {
-    componentMethod(Start.class);
+    if (initialized) {
+      componentMethod(Start.class);
+    }
   }
 
+  /**
+   * Execute the method with the {@link Stop} annotation in all classes that are managed, iff the components are
+   * already initialized.
+   */
   public synchronized void stop() {
-    componentMethod(Stop.class);
+    if (initialized) {
+      componentMethod(Stop.class);
+    }
   }
 
   private synchronized void componentMethod(Class<? extends Annotation> annotation) {
@@ -90,17 +134,17 @@ public class LifecycleManagement {
   }
 
   private Set<Class<?>> lifecycleClasses() {
-    Collection<Class<?>> loaded = LifecycleLoader.instance().load(space);
+    Collection<Class<?>> loaded = PackageLoader.load(packageName);
     return loaded.stream()
-        .filter(this::isLifecycleClass)
+        .filter(this::isManagedClass)
         .collect(Collectors.toSet());
   }
 
-  private boolean isLifecycleClass(Class<?> clazz) {
-    return containsAnnotation(clazz, Component.class);
+  private boolean isManagedClass(Class<?> clazz) {
+    return containsAnnotation(clazz, Managed.class);
   }
 
   private boolean isDependency(Field field) {
-    return containsAnnotation(field, Depends.class);
+    return containsAnnotation(field, Inject.class);
   }
 }
